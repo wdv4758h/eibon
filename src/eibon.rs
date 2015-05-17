@@ -1,4 +1,5 @@
 use std::env;
+use std::thread;
 
 fn search(word : String) -> String {
     // [Todo]
@@ -31,9 +32,23 @@ fn main() {
     }
 
     // searching
+    // if there are mutiple words, use thread and then join the result
+
+    let mut children : Vec<_> = vec![];
+
     for word in words {
-        let result = search(word);
-        let result = terminal_color(result);
-        response(result);
+        children.push(
+            thread::spawn(
+                move || { terminal_color(search(word)) }
+            )
+        )
+    }
+
+    for child in children {
+        let result = child.join();
+        match result {
+            Ok(data) => response(data),
+            Err(_) => {},
+        }
     }
 }
