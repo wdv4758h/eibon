@@ -1,11 +1,58 @@
+#![feature(convert)]            // .as_str
+
+extern crate rustc_serialize;   // JSON
+extern crate hyper;             // HTTP Client
+
 use std::env;
 use std::thread;
+
+use std::io::Read;              // .read_to_string
+
+use rustc_serialize::json::Json;
+use hyper::Client;
+
 
 fn search(word : String) -> String {
     // [Todo]
     // find word in cache
-    // send request to Yahoo dictionary
-    format!("{} search", word)
+    // dictionaries API wrapper
+
+    // let dict_url = "http://tw.dictionary.yahoo.com?p=";  // Yahoo
+    let dict_url = "http://api.urbandictionary.com/v0/define?term=";    // Urban
+
+    let query = format!("{}{}", dict_url, word.replace(" ", "+"));
+
+
+
+    // send http request
+
+    let mut client = Client::new();
+
+    // Creating an outgoing request
+    let mut res = client.get(query.as_str()).send().unwrap();
+
+    // Read the Response
+    let mut result = String::new();
+    res.read_to_string(&mut result).unwrap();
+
+
+
+    // parsing result (JSON)
+    let result = Json::from_str(result.as_str()).unwrap();
+
+    let result = format!("{}", result
+                                .find("list").unwrap()[0]
+                                .find("definition").unwrap());
+
+    // remove redundant backslash for double quote
+    let result = result.replace("\\\"", "\"");
+
+    // [Todo]
+    // remove first and last double quote
+    // handle \r\n
+    // return more info
+
+    result
 }
 
 fn terminal_color(word : String) -> String {

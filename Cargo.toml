@@ -31,3 +31,9 @@ debug = false
 rpath = false
 lto = true
 debug-assertions = false
+
+
+[dependencies]
+
+hyper = "0.5.0"
+rustc-serialize = "0.3"
