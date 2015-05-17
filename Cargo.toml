@@ -1,0 +1,33 @@
+[package]
+
+name = "eibon"
+version = "0.0.1"
+authors = ["Chiu-Hsiang Hsu <wdv4758h@gmail.com>"]
+keywords = ["dictionary"]
+documentation = ""
+license = ""
+readme = "README.rst"
+repository = ""
+
+
+[[bin]]
+
+name = "eibon"
+
+
+[profile.dev]
+
+opt-level = 0
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+
+
+[profile.release]
+
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
