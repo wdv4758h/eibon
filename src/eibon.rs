@@ -5,6 +5,7 @@ extern crate hyper;             // HTTP Client
 
 use std::env;
 use std::thread;
+use std::collections::HashMap;
 
 use std::io::Read;              // .read_to_string
 
@@ -55,10 +56,36 @@ fn search(word : String) -> String {
     result
 }
 
-fn terminal_color(word : String) -> String {
+fn terminal_color(data : String) -> String {
     // [Todo]
-    // static variable (dict) for VT100 colors
-    format!("{} color", word)
+    // make HashMap static, so no redundant calculation
+
+    // VT100 colors
+
+    let mut colors = HashMap::new();
+
+    // reset
+    colors.insert("reset",  "\x1b[0m");
+    // foreground
+    colors.insert("fg-black",   "\x1b[30m");
+    colors.insert("fg-red",     "\x1b[31m");
+    colors.insert("fg-green",   "\x1b[32m");
+    colors.insert("fg-yellow",  "\x1b[33m");
+    colors.insert("fg-blue",    "\x1b[34m");
+    colors.insert("fg-magenta", "\x1b[35m");
+    colors.insert("fg-cyan",    "\x1b[36m");
+    colors.insert("fg-white",   "\x1b[37m");
+    // background
+    colors.insert("bg-black",   "\x1b[40m");
+    colors.insert("bg-red",     "\x1b[41m");
+    colors.insert("bg-green",   "\x1b[42m");
+    colors.insert("bg-yellow",  "\x1b[44m");
+    colors.insert("bg-blue",    "\x1b[45m");
+    colors.insert("bg-magenta", "\x1b[46m");
+    colors.insert("bg-cyan",    "\x1b[47m");
+    colors.insert("bg-white",   "\x1b[48m");
+
+    format!("{}{}{}", colors["fg-cyan"], data, colors["reset"])
 }
 
 fn response(data : String) {
