@@ -5,12 +5,45 @@ extern crate hyper;             // HTTP Client
 
 use std::env;
 use std::thread;
-use std::collections::HashMap;
-
 use std::io::Read;              // .read_to_string
 
 use rustc_serialize::json::Json;
 use hyper::Client;
+
+trait VT100 {
+    fn vt100(&self, color: &'static str) -> String;
+}
+
+impl VT100 for String {
+    fn vt100(&self, color: &'static str) -> String {
+        let code = match color {
+            "bold"          => 1,
+            // foreground
+            "fg-black"      => 30,
+            "fg-red"        => 31,
+            "fg-green"      => 32,
+            "fg-yellow"     => 33,
+            "fg-blue"       => 34,
+            "fg-magenta"    => 35,
+            "fg-cyan"       => 36,
+            "fg-white"      => 37,
+            // background
+            "bg-black"      => 40,
+            "bg-red"        => 41,
+            "bg-green"      => 42,
+            "bg-yellow"     => 43,
+            "bg-blue"       => 44,
+            "bg-magenta"    => 45,
+            "bg-cyan"       => 46,
+            "bg-white"      => 47,
+            // reset
+            "reset"         => 0,
+            _               => 0,
+        };
+
+        format!("\x1b[{}m{}\x1b[0m", code, self.trim_right_matches("\x1b[0m"))
+    }
+}
 
 
 fn search(word : String) -> String {
@@ -41,12 +74,25 @@ fn search(word : String) -> String {
     // parsing result (JSON)
     let result = Json::from_str(result.as_str()).unwrap();
 
-    let result = format!("{}", result
-                                .find("list").unwrap()[0]
-                                .find("definition").unwrap());
+    let ref result0 = result.find("list").unwrap()[0];
+
+    let definition = format!("{}", result0.find("definition").unwrap());
+    let example = format!("{}", result0.find("example").unwrap());
 
     // remove redundant backslash for double quote
-    let result = result.replace("\\\"", "\"");
+    let definition = definition
+                        .replace("\\\"", "\"")
+                        .replace("\\r", "\r")
+                        .replace("\\n", "\n");
+    let example = example
+                        .replace("\\\"", "\"")
+                        .replace("\\r", "\r")
+                        .replace("\\n", "\n");
+
+    let result = format!("\n{}\n{}\n{}\n",
+                            word.vt100("bold").vt100("fg-yellow"),
+                            definition.vt100("fg-cyan"),
+                            example);
 
     // [Todo]
     // remove first and last double quote
@@ -54,38 +100,6 @@ fn search(word : String) -> String {
     // return more info
 
     result
-}
-
-fn terminal_color(data : String) -> String {
-    // [Todo]
-    // make HashMap static, so no redundant calculation
-
-    // VT100 colors
-
-    let mut colors = HashMap::new();
-
-    // reset
-    colors.insert("reset",  "\x1b[0m");
-    // foreground
-    colors.insert("fg-black",   "\x1b[30m");
-    colors.insert("fg-red",     "\x1b[31m");
-    colors.insert("fg-green",   "\x1b[32m");
-    colors.insert("fg-yellow",  "\x1b[33m");
-    colors.insert("fg-blue",    "\x1b[34m");
-    colors.insert("fg-magenta", "\x1b[35m");
-    colors.insert("fg-cyan",    "\x1b[36m");
-    colors.insert("fg-white",   "\x1b[37m");
-    // background
-    colors.insert("bg-black",   "\x1b[40m");
-    colors.insert("bg-red",     "\x1b[41m");
-    colors.insert("bg-green",   "\x1b[42m");
-    colors.insert("bg-yellow",  "\x1b[44m");
-    colors.insert("bg-blue",    "\x1b[45m");
-    colors.insert("bg-magenta", "\x1b[46m");
-    colors.insert("bg-cyan",    "\x1b[47m");
-    colors.insert("bg-white",   "\x1b[48m");
-
-    format!("{}{}{}", colors["fg-cyan"], data, colors["reset"])
 }
 
 fn response(data : String) {
@@ -113,7 +127,7 @@ fn main() {
     for word in words {
         children.push(
             thread::spawn(
-                move || { terminal_color(search(word)) }
+                move || { search(word) }
             )
         )
     }
