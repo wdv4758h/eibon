@@ -45,61 +45,67 @@ impl VT100 for String {
     }
 }
 
+trait Dictionary {
+    fn send_query(word: &String) -> String;
+    fn parse(word: &String, data: &String) -> String;
+    fn search(word: &String) -> String;
+}
 
-fn search(word : String) -> String {
-    // [Todo]
-    // find word in cache
-    // dictionaries API wrapper
+struct YahooDict;
+struct UrbanDict;
 
-    // let dict_url = "http://tw.dictionary.yahoo.com?p=";  // Yahoo
-    let dict_url = "http://api.urbandictionary.com/v0/define?term=";    // Urban
+impl Dictionary for UrbanDict {
+    fn send_query(word: &String) -> String {
+        let api = "http://api.urbandictionary.com/v0/define?term=";
+        let query = format!("{}{}", api, word.replace(" ", "+"));
 
-    let query = format!("{}{}", dict_url, word.replace(" ", "+"));
+        // send http request
+        let mut client = Client::new();
 
+        // Creating an outgoing request
+        let mut res = client.get(query.as_str()).send().unwrap();
 
+        // Read the Response
+        let mut result = String::new();
+        res.read_to_string(&mut result).unwrap();
 
-    // send http request
+        result
+    }
 
-    let mut client = Client::new();
+    fn parse(word: &String, data: &String) -> String {
 
-    // Creating an outgoing request
-    let mut res = client.get(query.as_str()).send().unwrap();
+        // parsing result (JSON)
+        let result = Json::from_str(data.as_str()).unwrap();
 
-    // Read the Response
-    let mut result = String::new();
-    res.read_to_string(&mut result).unwrap();
+        let ref result0 = result.find("list").unwrap()[0];
 
+        let definition = format!("{}", result0.find("definition").unwrap());
+        let example = format!("{}", result0.find("example").unwrap());
 
+        // remove redundant backslash for double quote
+        let definition = definition
+                            .replace("\\\"", "\"")
+                            .replace("\\r", "\r")
+                            .replace("\\n", "\n");
 
-    // parsing result (JSON)
-    let result = Json::from_str(result.as_str()).unwrap();
-
-    let ref result0 = result.find("list").unwrap()[0];
-
-    let definition = format!("{}", result0.find("definition").unwrap());
-    let example = format!("{}", result0.find("example").unwrap());
-
-    // remove redundant backslash for double quote
-    let definition = definition
+        let example = example
                         .replace("\\\"", "\"")
                         .replace("\\r", "\r")
                         .replace("\\n", "\n");
-    let example = example
-                        .replace("\\\"", "\"")
-                        .replace("\\r", "\r")
-                        .replace("\\n", "\n");
 
-    let result = format!("\n{}\n{}\n{}\n",
-                            word.vt100("bold").vt100("fg-yellow"),
-                            definition.vt100("fg-cyan"),
-                            example);
+        let result = format!("\n{}\n{}\n{}\n",
+                                word.vt100("bold").vt100("fg-yellow"),
+                                definition.vt100("fg-cyan"),
+                                example);
 
-    // [Todo]
-    // remove first and last double quote
-    // handle \r\n
-    // return more info
+        result
+    }
 
-    result
+    fn search(word: &String) -> String {
+        let result = UrbanDict::send_query(&word);
+        let result = UrbanDict::parse(&word, &result);
+        result
+    }
 }
 
 fn response(data : String) {
@@ -127,7 +133,7 @@ fn main() {
     for word in words {
         children.push(
             thread::spawn(
-                move || { search(word) }
+                move || { UrbanDict::search(&word) }
             )
         )
     }
